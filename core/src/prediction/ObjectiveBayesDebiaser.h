@@ -15,29 +15,21 @@
  along with drf. If not, see <http://www.gnu.org/licenses/>.
 #-------------------------------------------------------------------------------*/
 
-#ifndef drf_SPLITTINGRULE_H
-#define drf_SPLITTINGRULE_H
+#ifndef DRF_OBJECTBAYESDEBIASER_H
+#define DRF_OBJECTBAYESDEBIASER_H
 
-#include <vector>
+ namespace drf {
 
-#include "commons/Data.h"
+ class ObjectiveBayesDebiaser {
+ public:
+   double debias(double var_between,
+                 double group_noise,
+                 double num_good_groups) const;
+ private:
+   const double ONE_over_SQRT_TWO_PI = 0.3989422804;
+   const double ONE_over_SQRT_TWO = 0.70710678118;
+ };
 
-namespace drf {
+ } // namespace drf
 
-class SplittingRule {
-public:
-  virtual ~SplittingRule() {}
-  virtual bool find_best_split(const Data& data,
-                               size_t node,
-                               const std::vector<size_t>& possible_split_vars,
-                               std::vector<std::vector<double>>& responses_by_sample, // std::vector<double> -> std::vector<std::vector<double>>
-                               const std::vector<std::vector<size_t>>& samples,
-                               std::vector<size_t>& split_vars,
-                               std::vector<double>& split_values) = 0;
-};
-
-} // namespace drf
-
-#endif //drf_SPLITTINGRULE_H
-
-
+#endif //DRF_OBJECTBAYESDEBIASER_H

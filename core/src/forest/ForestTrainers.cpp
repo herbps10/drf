@@ -26,6 +26,8 @@
 //#include "splitting/factory/ProbabilitySplittingRuleFactory.h"
 #include "splitting/factory/RegressionSplittingRuleFactory.h"
 #include "splitting/factory/FourierSplittingRuleFactory.h"
+#include "splitting/factory/CausalFourierSplittingRuleFactory.h"
+#include "splitting/factory/CausalEffectFourierSplittingRuleFactory.h"
 
 namespace drf {
 
@@ -77,6 +79,30 @@ ForestTrainer fourier_trainer(size_t dim) {
                        std::move(prediction_strategy));
 }
 
+ForestTrainer causal_fourier_trainer(size_t dim) {
+  std::unique_ptr<RelabelingStrategy> relabeling_strategy(new NoopRelabelingStrategy());
+  
+  std::unique_ptr<SplittingRuleFactory> splitting_rule_factory(new CausalFourierSplittingRuleFactory());
+  
+  std::unique_ptr<OptimizedPredictionStrategy> prediction_strategy(new RegressionPredictionStrategy(dim));
+  
+  return ForestTrainer(std::move(relabeling_strategy),
+                       std::move(splitting_rule_factory),
+                       std::move(prediction_strategy));
+}
+
+
+ForestTrainer causal_effect_fourier_trainer(size_t dim) {
+  std::unique_ptr<RelabelingStrategy> relabeling_strategy(new NoopRelabelingStrategy());
+  
+  std::unique_ptr<SplittingRuleFactory> splitting_rule_factory(new CausalEffectFourierSplittingRuleFactory());
+  
+  std::unique_ptr<OptimizedPredictionStrategy> prediction_strategy(new RegressionPredictionStrategy(dim));
+  
+  return ForestTrainer(std::move(relabeling_strategy),
+                       std::move(splitting_rule_factory),
+                       std::move(prediction_strategy));
+}
 
 //ForestTrainer custom_trainer() {
 //  std::unique_ptr<RelabelingStrategy> relabeling_strategy(new CustomRelabelingStrategy());

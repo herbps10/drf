@@ -27,6 +27,10 @@ ForestTrainer gini_trainer(size_t dim);
 
 ForestTrainer fourier_trainer(size_t dim);
 
+ForestTrainer causal_fourier_trainer(size_t dim);
+
+ForestTrainer causal_effect_fourier_trainer(size_t dim);
+
 } // namespace drf
 
 #endif //DRF_FORESTTRAINERS_H

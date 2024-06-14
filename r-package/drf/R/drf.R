@@ -6,6 +6,7 @@
 #' to estimate any quantity of interest \eqn{\tau(P(Y | X))}.
 #' @param X The covariates used in the regression. Can be either a matrix of numerical values, or a data frame with columns of any data type.
 #' @param Y The (multivariate) outcome variable. Needs to be a matrix or a data frame consisting of numeric values.
+#' @param W An optional binary vector indicating treatment status. If supplied, a Causal Distributional Random Forest will be fit.
 #' @param num.trees Number of trees grown in the forest. Default is 500.
 #' @param splitting.rule A character value. The type of the splitting rule used, can be either "FourierMMD" (MMD splitting criterion with FastMMD approximation for speed) or "CART" (sum of standard CART criteria over the components of Y).
 #' @param num.features A numeric value, in case of "FourierMMD", the number of random features to sample.
@@ -33,6 +34,7 @@
 #'  tree is skipped and does not contribute to the estimate). Setting this to FALSE may improve performance on
 #'  small/marginally powered data, but requires more trees (note: tuning does not adjust the number of trees).
 #'  Only applies if honesty is enabled. Default is TRUE.
+#' @param ci.group.size number of trees per resampling group
 #' @param alpha A tuning parameter that controls the maximum imbalance of a split. Default is 0.05, meaning a child node will contain at most 5\% of observations in the parent node.
 #' @param imbalance.penalty A tuning parameter that controls how harshly imbalanced splits are penalized. Default is 0.
 #' @param compute.oob.predictions Whether OOB predictions on training set should be precomputed. Default is TRUE.
@@ -49,44 +51,44 @@
 #' n = 10000
 #' p = 20
 #' d = 3
-#' 
+#'
 #' # Generate training data
 #' X = matrix(rnorm(n * p), nrow=n)
 #' Y = matrix(rnorm(n * d), nrow=n)
 #' Y[, 1] = Y[, 1] + X[, 1]
 #' Y[, 2] = Y[, 2] * X[, 2]
 #' Y[, 3] = Y[, 3] * X[, 1] + X[, 2]
-#' 
+#'
 #' # Fit DRF object
 #' drf.forest = drf(X, Y)
-#' 
+#'
 #' # Generate test data
 #' X_test = matrix(rnorm(10 * p), nrow=10)
-#' 
+#'
 #' out = predict(drf.forest, newdata=X_test)
 #' # Compute E[Y_1 | X] for all data in X_test directly from
 #' # the weights representing the estimated distribution
 #' out$weights %*% out$y[,1]
-#' 
+#'
 #' out = predict(drf.forest, newdata=X_test,
 #'               functional='mean')
 #' # Compute E[Y_1 | X] for all data in X_test using built-in functionality
 #' out[,1]
-#' 
+#'
 #' out = predict(drf.forest, newdata=X_test,
 #'               functional='quantile',
 #'               quantiles=c(0.25, 0.75),
 #'               transformation=function(y){y[1] * y[2] * y[3]})
 #' # Compute 25% and 75% quantiles of Y_1*Y_2*Y_3, conditionally on X = X_test[1, ]
 #' out[1,,]
-#' 
+#'
 #' out = predict(drf.forest, newdata=X_test,
 #'               functional='cov',
 #'               transformation=function(y){matrix(1:6, nrow=2) %*% y})
 #' # Compute 2x2 covariance matrix for (1*Y_1 + 3*Y_2 + 5*Y_3, 2*Y_1 + 4*Y_2 + 6*Y_3),
 #' # conditionally on X = X_test[1, ]
 #' out[1,,]
-#' 
+#'
 #' out = predict(drf.forest, newdata=X_test,
 #'               functional='custom',
 #'               custom.functional=function(y, w){c(sum(y[, 1] * w), sum(y[, 2] * w))})
@@ -99,6 +101,7 @@
 #' @importFrom Rcpp evalCpp
 #' @importFrom utils modifyList
 drf <-               function(X, Y,
+                              W = NULL,
                               num.trees = 500,
                               splitting.rule = "FourierMMD",
                               num.features = 10,
@@ -112,20 +115,21 @@ drf <-               function(X, Y,
                               honesty = TRUE,
                               honesty.fraction = 0.5,
                               honesty.prune.leaves = TRUE,
+                              ci.group.size = 1,
                               alpha = 0.05,
                               imbalance.penalty = 0,
                               compute.oob.predictions = TRUE,
                               num.threads = NULL,
                               seed = stats::runif(1, 0, .Machine$integer.max),
                               compute.variable.importance = FALSE) {
-  
+
   # initial checks for X and Y
   if (is.data.frame(X)) {
-    
+
     if (is.null(names(X))) {
       stop("the regressor should be named if provided under data.frame format.")
     }
-    
+
     if (any(apply(X, 2, class) %in% c("factor", "character"))) {
       any.factor.or.character <- TRUE
       X.mat <- as.matrix(fastDummies::dummy_cols(X, remove_selected_columns = TRUE))
@@ -133,7 +137,7 @@ drf <-               function(X, Y,
       any.factor.or.character <- FALSE
       X.mat <- as.matrix(X)
     }
-    
+
     mat.col.names.df <- names(X)
     mat.col.names <- colnames(X.mat)
   } else {
@@ -142,55 +146,54 @@ drf <-               function(X, Y,
     mat.col.names.df <- NULL
     any.factor.or.character <- FALSE
   }
-  
+
   if (is.data.frame(Y)) {
-    
+
     if (any(apply(Y, 2, class) %in% c("factor", "character"))) {
       stop("Y should only contain numeric variables.")
     }
     Y <- as.matrix(Y)
   }
-  
+
   if (is.vector(Y)) {
     Y <- matrix(Y,ncol=1)
   }
-  
-  
+
+
   #validate_X(X.mat)
-  
+
   if (inherits(X, "Matrix") && !(inherits(X, "dgCMatrix"))) {
         stop("Currently only sparse data of class 'dgCMatrix' is supported.")
     }
-  
+
   validate_sample_weights(sample.weights, X.mat)
   #Y <- validate_observations(Y, X)
-  
+
   # set legacy GRF parameters
   clusters <- vector(mode = "numeric", length = 0)
   samples.per.cluster <- 0
   equalize.cluster.weights <- FALSE
-  ci.group.size <- 1
-  
+
   num.threads <- validate_num_threads(num.threads)
-  
+
   all.tunable.params <- c("sample.fraction", "mtry", "min.node.size", "honesty.fraction",
                           "honesty.prune.leaves", "alpha", "imbalance.penalty")
-  
+
   # should we scale or not the data
   if (response.scaling) {
     Y.transformed <- scale(Y)
   } else {
     Y.transformed <- Y
   }
-  
-  data <- create_data_matrices(X.mat, outcome = Y.transformed, sample.weights = sample.weights)
-  
+
+  data <- create_data_matrices(X.mat, outcome = Y.transformed, treatment = W, sample.weights = sample.weights)
+
   # bandwidth using median heuristic by default
   if (is.null(bandwidth)) {
     bandwidth <- medianHeuristic(Y.transformed)
   }
-  
-  
+
+
   args <- list(num.trees = num.trees,
                clusters = clusters,
                samples.per.cluster = samples.per.cluster,
@@ -209,22 +212,30 @@ drf <-               function(X, Y,
                num_features = num.features,
                bandwidth = bandwidth,
                node_scaling = ifelse(node.scaling, 1, 0))
-  
+
   if (splitting.rule == "CART") {
     ##forest <- do.call(gini_train, c(data, args))
     forest <- do.call.rcpp(gini_train, c(data, args))
     ##forest <- do.call(gini_train, c(data, args))
   } else if (splitting.rule == "FourierMMD") {
-    forest <- do.call.rcpp(fourier_train, c(data, args))
+    if(is.null(W)) {
+      forest <- do.call.rcpp(fourier_train, c(data, args))
+    }
+    else {
+      args$causal_effect_splits <- 1
+      forest <- do.call.rcpp(causal_fourier_train, c(data, args))
+    }
   } else {
     stop("splitting rule not available.")
   }
-  
+
   class(forest) <- c("drf")
+  forest[["causal"]] <- !is.null(W)
   forest[["ci.group.size"]] <- ci.group.size
   forest[["X.orig"]] <- X.mat
   forest[["is.df.X"]] <- is.data.frame(X)
   forest[["Y.orig"]] <- Y
+  forest[["W.orig"]] <- W
   forest[["sample.weights"]] <- sample.weights
   forest[["clusters"]] <- clusters
   forest[["equalize.cluster.weights"]] <- equalize.cluster.weights
@@ -232,10 +243,11 @@ drf <-               function(X, Y,
   forest[["mat.col.names"]] <- mat.col.names
   forest[["mat.col.names.df"]] <- mat.col.names.df
   forest[["any.factor.or.character"]] <- any.factor.or.character
-  
+  forest[["bandwidth"]] <- bandwidth
+
   if (compute.variable.importance) {
     forest[['variable.importance']] <- variableImportance(forest, h = bandwidth)
   }
-  
+
   forest
 }

@@ -15,29 +15,21 @@
  along with drf. If not, see <http://www.gnu.org/licenses/>.
 #-------------------------------------------------------------------------------*/
 
-#ifndef drf_SPLITTINGRULE_H
-#define drf_SPLITTINGRULE_H
-
-#include <vector>
-
-#include "commons/Data.h"
+#include "splitting/factory/CausalEffectFourierSplittingRuleFactory.h"
+#include "splitting/CausalEffectFourierSplittingRule.h"
 
 namespace drf {
 
-class SplittingRule {
-public:
-  virtual ~SplittingRule() {}
-  virtual bool find_best_split(const Data& data,
-                               size_t node,
-                               const std::vector<size_t>& possible_split_vars,
-                               std::vector<std::vector<double>>& responses_by_sample, // std::vector<double> -> std::vector<std::vector<double>>
-                               const std::vector<std::vector<size_t>>& samples,
-                               std::vector<size_t>& split_vars,
-                               std::vector<double>& split_values) = 0;
-};
+std::unique_ptr<SplittingRule> CausalEffectFourierSplittingRuleFactory::create(const Data& data,
+                                                                      const TreeOptions& options) const {
+  return std::unique_ptr<SplittingRule>(new CausalEffectFourierSplittingRule(
+      data.get_max_num_unique_values(),
+      options.get_alpha(),
+      options.get_imbalance_penalty(),
+      data.get_outcome_index().size(),
+      options.get_num_features(),
+      options.get_bandwidth(),
+      options.get_node_scaling()));
+}
 
 } // namespace drf
-
-#endif //drf_SPLITTINGRULE_H
-
-

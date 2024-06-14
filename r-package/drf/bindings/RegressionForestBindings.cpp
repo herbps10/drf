@@ -31,7 +31,7 @@ using namespace drf;
 // [[Rcpp::export]]
 Rcpp::List gini_train(Rcpp::NumericMatrix train_matrix,
                             Eigen::SparseMatrix<double> sparse_train_matrix,
-                            std::vector<size_t> outcome_index, // 
+                            std::vector<size_t> outcome_index, //
                             size_t sample_weight_index,
                             bool use_sample_weights,
                             unsigned int mtry,
@@ -190,4 +190,67 @@ Rcpp::List regression_predict_oob(Rcpp::List forest_object,
   //std::cout << "creating predictions" << std::endl;
   Rcpp::List result = RcppUtilities::create_prediction_object(predictions);
   return result;
+}
+
+
+// [[Rcpp::export]]
+Rcpp::List causal_fourier_train(Rcpp::NumericMatrix train_matrix,
+                         Eigen::SparseMatrix<double> sparse_train_matrix,
+                         std::vector<size_t> outcome_index, //
+                         size_t treatment_index, //
+                         size_t sample_weight_index,
+                         bool use_sample_weights,
+                         unsigned int mtry,
+                         unsigned int num_trees,
+                         unsigned int min_node_size,
+                         double sample_fraction,
+                         bool honesty,
+                         double honesty_fraction,
+                         bool honesty_prune_leaves,
+                         size_t ci_group_size,
+                         double alpha,
+                         double imbalance_penalty,
+                         std::vector<size_t> clusters,
+                         unsigned int samples_per_cluster,
+                         bool compute_oob_predictions,
+                         unsigned int num_threads,
+                         unsigned int seed,
+                         size_t num_features,
+                         double bandwidth,
+                         unsigned int node_scaling,
+                         size_t causal_effect_splits) {
+  //std::cout << "regression_trainer will start" << std::endl;
+
+  ForestTrainer trainer = causal_effect_splits == 1 ?
+    causal_effect_fourier_trainer(outcome_index.size()) :
+    causal_fourier_trainer(outcome_index.size());
+
+  //std::cout << "convert_data will start" << std::endl;
+  std::unique_ptr<Data> data = RcppUtilities::convert_data(train_matrix, sparse_train_matrix);
+  //std::cout << "outcome_index will start and size will be printed" << std::endl;
+  for (size_t i = 0; i < outcome_index.size(); ++i) {
+    outcome_index[i] = outcome_index[i] - 1;
+  }
+
+  data->set_outcome_index(outcome_index);
+  data->set_treatment_index(treatment_index - 1);
+
+  if(use_sample_weights) {
+    data->set_weight_index(sample_weight_index - 1);
+  }
+  data->sort();
+
+  //std::cout << "options will start" << std::endl;
+  ForestOptions options(num_trees, ci_group_size, sample_fraction, mtry, min_node_size, honesty,
+                        honesty_fraction, honesty_prune_leaves, alpha, imbalance_penalty, num_threads, seed, clusters, samples_per_cluster, num_features, bandwidth, node_scaling);
+  //std::cout << "trainer.train will start" << std::endl;
+  Forest forest = trainer.train(*data, options);
+
+  std::vector<Prediction> predictions;
+  if (compute_oob_predictions) {
+    ForestPredictor predictor = regression_predictor(num_threads, outcome_index.size());
+    predictions = predictor.predict_oob(forest, *data, false);
+  }
+
+  return RcppUtilities::create_forest_object(forest, predictions);
 }

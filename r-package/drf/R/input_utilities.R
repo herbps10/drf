@@ -2,7 +2,7 @@ validate_X <- function(X) {
   if (inherits(X, "Matrix") && !(inherits(X, "dgCMatrix"))) {
     stop("Currently only sparse data of class 'dgCMatrix' is supported.")
   }
-  
+
   if (any(is.na(X))) {
     stop("The feature matrix X contains at least one NA.")
   }
@@ -14,18 +14,18 @@ validate_observations <- function(V, X) {
   } else if (!is.vector(V)) {
     stop(paste("Observations (W, Y, or Z) must be vectors."))
   }
-  
+
   if (!is.numeric(V) && !is.logical(V)) {
     stop(paste(
       "Observations (W, Y, or Z) must be numeric. DRF does not ",
       "currently support non-numeric observations."
     ))
   }
-  
+
   if (any(is.na(V))) {
     stop("The vector of observations (W, Y, or Z) contains at least one NA.")
   }
-  
+
   if (length(V) != nrow(X)) {
     stop("length of observation (W, Y, or Z) does not equal nrow(X).")
   }
@@ -103,17 +103,24 @@ validate_sample_weights <- function(sample.weights, X) {
 
 #' @importFrom Matrix Matrix cBind
 #' @importFrom methods new
-create_data_matrices <- function(X, outcome = NULL, sample.weights = FALSE) {
+create_data_matrices <- function(X, outcome = NULL, treatment = NULL, sample.weights = FALSE) {
   default.data <- matrix(nrow = 0, ncol = 0)
   sparse.data <- new("dgCMatrix", Dim = c(0L, 0L))
   out <- list()
   i <- 1
+  #offset <- ncol(X) - 1
+  if(is.vector(X)) X <- matrix(X, ncol = 1)
+  offset <- ncol(X)
   if (!is.null(outcome)) {
-    out[["outcome.index"]] <- ncol(X) + i:(i+ncol(outcome)-1)
+    out[["outcome.index"]] <- (offset + 1):(offset + ncol(outcome))
+    offset <- offset + ncol(outcome)
+  }
+  if (!is.null(treatment)) {
+    out[["treatment.index"]] <- (offset + 1):(offset + ncol(treatment))
+    offset <- offset + ncol(treatment)
   }
   if (!identical(sample.weights, "FALSE")) {
-    i <- i + 1
-    out[["sample.weight.index"]] <- ncol(X) + ncol(outcome) + i
+    out[["sample.weight.index"]] <- offset + 1
     if (is.null(sample.weights)) {
       out[["use.sample.weights"]] <- FALSE
     } else {
@@ -122,16 +129,16 @@ create_data_matrices <- function(X, outcome = NULL, sample.weights = FALSE) {
   } else {
     sample.weights = NULL
   }
-  
+
   if (inherits(X, "dgCMatrix") && ncol(X) > 1) {
     sparse.data <- cbind(X, outcome, sample.weights)
   } else {
     X <- as.matrix(X)
-    default.data <- as.matrix(cbind(X, outcome, sample.weights))
+    default.data <- as.matrix(cbind(X, outcome, treatment, sample.weights))
   }
   out[["train.matrix"]] <- default.data
   out[["sparse.train.matrix"]] <- sparse.data
-  
+
   out
 }
 

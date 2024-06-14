@@ -13,8 +13,28 @@ compute_weights_oob <- function(forest_object, test_matrix, sparse_test_matrix, 
     .Call('_drf_compute_weights_oob', PACKAGE = 'drf', forest_object, test_matrix, sparse_test_matrix, num_threads)
 }
 
+compute_causal_weights <- function(forest_object, train_matrix, sparse_train_matrix, test_matrix, sparse_test_matrix, treatment_index, num_threads) {
+    .Call('_drf_compute_causal_weights', PACKAGE = 'drf', forest_object, train_matrix, sparse_train_matrix, test_matrix, sparse_test_matrix, treatment_index, num_threads)
+}
+
+compute_causal_weights_oob <- function(forest_object, test_matrix, sparse_test_matrix, treatment_index, num_threads) {
+    .Call('_drf_compute_causal_weights_oob', PACKAGE = 'drf', forest_object, test_matrix, sparse_test_matrix, treatment_index, num_threads)
+}
+
+compute_causal_bootstrap_weights <- function(forest_object, train_matrix, sparse_train_matrix, test_matrix, sparse_test_matrix, treatment_index, ci_group_size, num_threads) {
+    .Call('_drf_compute_causal_bootstrap_weights', PACKAGE = 'drf', forest_object, train_matrix, sparse_train_matrix, test_matrix, sparse_test_matrix, treatment_index, ci_group_size, num_threads)
+}
+
+compute_causal_bootstrap_weights_oob <- function(forest_object, test_matrix, sparse_test_matrix, treatment_index, ci_group_size, num_threads) {
+    .Call('_drf_compute_causal_bootstrap_weights_oob', PACKAGE = 'drf', forest_object, test_matrix, sparse_test_matrix, treatment_index, ci_group_size, num_threads)
+}
+
 merge <- function(forest_objects) {
     .Call('_drf_merge', PACKAGE = 'drf', forest_objects)
+}
+
+compute_witness <- function(forest_object, train_matrix, sparse_train_matrix, test_matrix, sparse_test_matrix, Ky, ci_group_size, treatment_index, alpha, num_threads) {
+    .Call('_drf_compute_witness', PACKAGE = 'drf', forest_object, train_matrix, sparse_train_matrix, test_matrix, sparse_test_matrix, Ky, ci_group_size, treatment_index, alpha, num_threads)
 }
 
 gini_train <- function(train_matrix, sparse_train_matrix, outcome_index, sample_weight_index, use_sample_weights, mtry, num_trees, min_node_size, sample_fraction, honesty, honesty_fraction, honesty_prune_leaves, ci_group_size, alpha, imbalance_penalty, clusters, samples_per_cluster, compute_oob_predictions, num_threads, seed, num_features, bandwidth, node_scaling) {
@@ -31,5 +51,9 @@ regression_predict <- function(forest_object, train_matrix, sparse_train_matrix,
 
 regression_predict_oob <- function(forest_object, train_matrix, sparse_train_matrix, outcome_index, num_threads, estimate_variance) {
     .Call('_drf_regression_predict_oob', PACKAGE = 'drf', forest_object, train_matrix, sparse_train_matrix, outcome_index, num_threads, estimate_variance)
+}
+
+causal_fourier_train <- function(train_matrix, sparse_train_matrix, outcome_index, treatment_index, sample_weight_index, use_sample_weights, mtry, num_trees, min_node_size, sample_fraction, honesty, honesty_fraction, honesty_prune_leaves, ci_group_size, alpha, imbalance_penalty, clusters, samples_per_cluster, compute_oob_predictions, num_threads, seed, num_features, bandwidth, node_scaling, causal_effect_splits) {
+    .Call('_drf_causal_fourier_train', PACKAGE = 'drf', train_matrix, sparse_train_matrix, outcome_index, treatment_index, sample_weight_index, use_sample_weights, mtry, num_trees, min_node_size, sample_fraction, honesty, honesty_fraction, honesty_prune_leaves, ci_group_size, alpha, imbalance_penalty, clusters, samples_per_cluster, compute_oob_predictions, num_threads, seed, num_features, bandwidth, node_scaling, causal_effect_splits)
 }
 

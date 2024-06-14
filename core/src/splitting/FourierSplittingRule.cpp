@@ -65,18 +65,18 @@ FourierSplittingRule::~FourierSplittingRule() {
   //  // delete[] sums;
   //  // int s = sizeof(sums)/sizeof(sums[0]); // maybe need some check here
   //   //for(int i = 0; i < 10; ++i) {
-  //   //  delete[] sums[i];   
+  //   //  delete[] sums[i];
   //   //}
   //   //Free the array of pointers
   //   delete[] sums;
-  //   
+  //
   // }
 }
 
 bool FourierSplittingRule::find_best_split(const Data& data,
                                               size_t node,
                                               const std::vector<size_t>& possible_split_vars,
-                                              std::vector<std::vector<double> >& responses_by_sample, // std::vector<double> -> std::vector<std::vector<double>> 
+                                              std::vector<std::vector<double> >& responses_by_sample, // std::vector<double> -> std::vector<std::vector<double>>
                                               const std::vector<std::vector<size_t> >& samples,
                                               std::vector<size_t>& split_vars,
                                               std::vector<double>& split_values) {
@@ -105,9 +105,9 @@ bool FourierSplittingRule::find_best_split(const Data& data,
    for(size_t k = 0; k < d; ++k) {
      double m = 0.0;
      double s = 0.0;
-     // center 
+     // center
      for(size_t j = 0; j < n; ++j) {
-       m += responses_by_sample[samples[node][j]][k];     
+       m += responses_by_sample[samples[node][j]][k];
      }
      m = m / n;
      for(size_t j = 0; j < n; ++j) {
