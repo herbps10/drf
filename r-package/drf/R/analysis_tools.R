@@ -243,6 +243,8 @@ get_sample_weights <- function(forest, newdata = NULL, num.threads = NULL) {
 get_causal_sample_weights <- function(forest, newdata = NULL, newtreatment = NULL, num.threads = NULL) {
   num.threads <- validate_num_threads(num.threads)
 
+  if(!is.matrix(newtreatment)) newtreatment <- matrix(newtreatment, ncol = 1)
+
   forest.short <- forest[-which(names(forest) == "X.orig")]
   train.data <- create_data_matrices(forest[["X.orig"]], treatment = forest[["W.orig"]])
 
@@ -291,6 +293,8 @@ get_causal_sample_weights <- function(forest, newdata = NULL, newtreatment = NUL
 #' @export
 get_causal_bootstrap_sample_weights <- function(forest, newdata = NULL, newtreatment = NULL, num.threads = NULL) {
   num.threads <- validate_num_threads(num.threads)
+
+  if(!is.matrix(newtreatment)) newtreatment <- matrix(newtreatment, ncol = 1)
 
   forest.short <- forest[-which(names(forest) == "X.orig")]
   train.data <- create_data_matrices(forest[["X.orig"]], treatment = forest[["W.orig"]])
