@@ -19,7 +19,7 @@ set.seed(10)
 
 
 #run <- c("toy_examples", "wage", "lalonde", "pension")
-run<-"wage"
+run<-"pension"
 
 
 
@@ -509,7 +509,7 @@ for (i in 1:length(witnesslist)){
   witness <- witnesslist[[i]]
   Ytrain<- Ylist[[i]]
   data <- tibble(
-    Y     = Ytrain[,1],
+    Y     = Ytrain,
     w     = witness[1, ],
     lower = witness[2, ],
     upper = witness[3, ]
@@ -517,7 +517,7 @@ for (i in 1:length(witnesslist)){
 
 
   p <- data %>%
-    ggplot(aes(x = Y, y = w)) +
+    ggplot(aes(x = rowSums(Y), y = w)) +
     geom_line(size = 1.5) +  # Thicker main line
     geom_line(aes(y = lower), lty = 2, size = 1.5) +  # Thicker dashed lines
     geom_line(aes(y = upper), lty = 2, size = 1.5) +  # Thicker dashed lines
