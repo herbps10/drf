@@ -174,8 +174,7 @@ std::vector<Eigen::SparseMatrix<double>> compute_causal_bootstrap_sample_weights
 
   std::vector<Eigen::SparseMatrix<double>> results;
 
-  //for(size_t tree_index = 0; tree_index < forest.get_trees().size(); tree_index += ci_group_size) {
-  for(size_t tree_index = 0; tree_index < forest.get_trees().size(); tree_index += 1) {
+  for(size_t tree_index = 0; tree_index < forest.get_trees().size(); tree_index += ci_group_size) {
     std::vector<Eigen::Triplet<double>> triplet_list;
     triplet_list.reserve(num_neighbors);
     Eigen::SparseMatrix<double> result(num_samples, num_neighbors);

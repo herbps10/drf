@@ -94,10 +94,12 @@
 #'
 predict.drf <- function(object,
                         newdata = NULL,
+                        newtreatment = NULL,
                         functional = NULL,
                         transformation = NULL,
                         custom.functional = NULL,
                         num.threads = NULL,
+                        bootstrap = FALSE,
                         ...) {
 
   # if the newdata is a data.frame we should be careful about the non existing levels
@@ -167,9 +169,24 @@ predict.drf <- function(object,
 
 
   # get the weights which are used in the second step
-  w <- get_sample_weights(forest = object,
-                          newdata = newdata.mat,
-                          num.threads = num.threads)
+  if(fit$causal == FALSE) {
+    w <- get_sample_weights(forest = object,
+                            newdata = newdata.mat,
+                            num.threads = num.threads)
+  }
+  else {
+    if(bootstrap == TRUE) {
+      w <- get_causal_bootstrap_sample_weights(forest = object,
+                                     newtreatment = newtreatment,
+                                     newdata = newdata.mat,
+                                     num.threads = num.threads)
+    } else {
+      w <- get_causal_sample_weights(forest = object,
+                                     newtreatment = newtreatment,
+                                     newdata = newdata.mat,
+                                     num.threads = num.threads)
+    }
+  }
 
 
   if (is.null(functional)) {
