@@ -185,7 +185,7 @@ std::vector<Eigen::SparseMatrix<double>> compute_causal_bootstrap_sample_weights
       //  sample, treatment, train_data, forest, tree_index, tree_index + ci_group_size, leaf_nodes_by_tree, trees_by_sample);
 
       std::unordered_map<size_t, double> weights = weight_computer.compute_weights(
-        sample, treatment, train_data, forest, tree_index, tree_index + 1, leaf_nodes_by_tree, trees_by_sample);
+        sample, treatment, train_data, forest, tree_index, tree_index + ci_group_size, leaf_nodes_by_tree, trees_by_sample);
 
       for (auto it = weights.begin(); it != weights.end(); it++) {
         size_t neighbor = it->first;
