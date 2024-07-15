@@ -466,13 +466,13 @@ data(pension)
 
 pension<-pension[complete.cases(pension),]
 
-X<-pension[2:nrow(pension), c("age", "inc", "fsize", "educ", "marr", "twoearn", "hown", "db", "pira")]
+X<-pension[1:nrow(pension), c("age", "inc", "fsize", "educ", "marr", "twoearn", "hown", "db", "pira")]
 
-W<-pension[2:nrow(pension),"e401", drop=F]
+W<-pension[1:nrow(pension),"e401", drop=F]
 
 # Y=(Net Financial Assets, Net Non-401(k) Financial Assets, Total Wealth)
-#Y<-pension[2:nrow(pension),c("net_tfa", "net_nifa", "tw")]
-Y<-pension[2:nrow(pension),c( "tw"), drop=F]
+Y<-pension[1:nrow(pension),c("net_tfa", "net_nifa", "tw")]
+#Y<-pension[2:nrow(pension),c( "tw"), drop=F]
 Y<-scale(Y)
 
 ## As in cite(...) we consider the free wealth measures, Net Financial Assets, Net Non-401(k) Financial
@@ -481,14 +481,14 @@ Y<-scale(Y)
 ## the wealth measures into one variable beforehand, we use the ability of Causal-DRF
 ## to estimate the CKTE of the three wealth measures in total.
 
-x<-pension[1, c("age", "inc", "fsize", "educ", "marr", "twoearn", "hown", "db", "pira")]
+x<-as.matrix(pension[nrow(X), c("age", "inc", "fsize", "educ", "marr", "twoearn", "hown", "db", "pira")])
 
 i<-0
 witnesslist<-list()
 Ylist<-list()
-for (n in c(500,1000,2000)){
+for (n in 8000){
   i<-i+1
-  train_idx = sample(1:nrow(X), n, replace=FALSE)
+  train_idx = sample(1:nrow(X)-1, n, replace=FALSE)
 
   ## Focus on training data
   Ytrain=as.matrix(Y[train_idx,, drop=F])
@@ -496,20 +496,18 @@ for (n in c(500,1000,2000)){
   #as.numeric(W[train_idx])
   Xtrain=as.matrix(X[train_idx,])
 
-
-  fit <- drf(X=Xtrain, Y=Ytrain, W=Wtrain, num.trees = 3000, ci.group.size = 150)
+  fit <- drf(X=Xtrain, Y=Ytrain[,1,drop=F], W=Wtrain, num.trees = 4000, ci.group.size = 100)
 
 
   witnesslist[[i]]<- predict_witness(fit, alpha = 0.05, newdata = x, newtreatment = matrix(1))
-  Ylist[[i]] <- Ytrain
+  Ylist[[i]] <- Ytrain[,1,drop=F]
 }
 
 for (i in 1:length(witnesslist)){
 
   witness <- witnesslist[[i]]
-  Ytrain<- Ylist[[i]]
   data <- tibble(
-    Y     = Ytrain,
+    Y     = Ylist[[i]],
     w     = witness[1, ],
     lower = witness[2, ],
     upper = witness[3, ]
@@ -531,4 +529,98 @@ for (i in 1:length(witnesslist)){
     )
   print(p)
 }
+
+
+train_idx = 1:(nrow(X)-1) #sample(2:nrow(X), 8000, replace=FALSE)
+
+
+## Focus on training data
+Ytrain=as.matrix(Y[train_idx,, drop=F])
+Wtrain<-as.matrix(W[train_idx,,drop=F])
+#as.numeric(W[train_idx])
+Xtrain=as.matrix(X[train_idx,])
+
+
+fit <- drf(X=Xtrain, Y=Ytrain, W=Wtrain, num.trees = 4000, ci.group.size = 100)
+
+
+wx0<- predict(fit, newdata=x, newtreatment=0, bootstrap=F)$weights
+wx1<- predict(fit, newdata=x, newtreatment=1, bootstrap=F)$weights
+
+### Request 1: Can we make a new option for newtreatmnet that directly gives us wx?
+### Request 2: Can we somehow output the witness function?
+wx<-wx1 - wx0
+
+wxSb0<- predict(fit, newdata=x, newtreatment=0, bootstrap=T)$weights
+wxSb1<- predict(fit, newdata=x, newtreatment=1, bootstrap=T)$weights
+
+wxSb<-lapply(1:length(wxSb0), function(j) wxSb1[[j]] - wxSb0[[j]]  )
+
+
+bandwidth_Y <- fit$bandwidth
+k_Y <- rbfdot(sigma = 1/(2*bandwidth_Y^2) )
+
+
+##Do Test of equality
+Ky <- t(kernlab::kernelMatrix(k_Y, Ytrain, y = Ytrain))
+H0list<-do.call(c, lapply(wxSb, function(w) as.numeric((w-wx)%*%Ky%*%t(w-wx)) ))
+q<-quantile(H0list, 1-0.05)
+
+teststat<-as.numeric(wx%*%Ky%*%t(wx))
+
+print(teststat >= q) ##We reject a t the 5 % level!
+
+
+
+##Only plot first dimension
+bandwidth_Y1 <- drf:::medianHeuristic(Ytrain[,1])
+k_Y1 <- rbfdot(sigma = 1/(2*bandwidth_Y1^2) )
+
+
+Ky1 <- kernlab::kernelMatrix(k_Y, Ytrain[,1], y =  Ytrain[,1])
+H0list1<-do.call(c, lapply(wxSb, function(w) as.numeric((w-wx)%*%Ky1%*%t(w-wx)) ))
+q1<-quantile(H0list1, 1-0.05)
+
+
+##Make this into an actual function!!! and then a grid from min to max of Y.
+fvals<- function(y){
+
+  Ky1f <- kernlab::kernelMatrix(k_Y, Ytrain[,1], y =  y)
+
+  return(as.numeric(unlist(wx%*%Ky1f)))
 }
+
+yseq<-seq(min(Ytrain[,1]), max(Ytrain[,1]), by=0.01    )
+
+data <- tibble(
+  Y     = yseq,
+  w     = fvals(yseq),
+  lower = fvals(yseq)-sqrt(q1),
+  upper = fvals(yseq)+sqrt(q1)
+)
+
+
+p <- data %>%
+  ggplot(aes(x = Y, y = w)) +
+  geom_line(size = 1.5) +  # Thicker main line
+  geom_line(aes(y = lower), lty = 2, size = 1.5) +  # Thicker dashed lines
+  geom_line(aes(y = upper), lty = 2, size = 1.5) +  # Thicker dashed lines
+  geom_hline(yintercept = 0, size = 1.5)+
+  scale_x_continuous(limits =  range(yseq)) +
+  scale_y_continuous(limits = c(-1.4,1.4)) +
+  labs(y = NULL) +  # Remove y-axis label+
+  theme(
+    axis.title = element_text(size = 14),  # Increase axis title size
+    axis.text = element_text(size = 12)    # Increase axis text size
+  )
+print(p)
+
+
+}
+
+
+
+
+
+
+

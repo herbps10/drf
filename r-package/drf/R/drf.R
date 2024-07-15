@@ -243,7 +243,7 @@ drf <-               function(X, Y,
   forest[["mat.col.names"]] <- mat.col.names
   forest[["mat.col.names.df"]] <- mat.col.names.df
   forest[["any.factor.or.character"]] <- any.factor.or.character
-  forest[["bandwidth"]] <- bandwidth
+  forest[["bandwidth"]] <- medianHeuristic(Y)
 
   if (compute.variable.importance) {
     forest[['variable.importance']] <- variableImportance(forest, h = bandwidth)

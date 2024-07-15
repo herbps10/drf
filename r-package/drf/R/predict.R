@@ -359,7 +359,7 @@ predict_witness <- function(forest,
   }
 
   bandwidth_Y <- forest$bandwidth
-  k_Y <- rbfdot(sigma = bandwidth_Y)
+  k_Y <- rbfdot(sigma = 1/(2*bandwidth_Y^2) )
 
   Ky <- t(kernlab::kernelMatrix(k_Y, forest$Y.orig, y = forest$Y.orig))
 
