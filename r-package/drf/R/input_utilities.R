@@ -103,7 +103,7 @@ validate_sample_weights <- function(sample.weights, X) {
 
 #' @importFrom Matrix Matrix cBind
 #' @importFrom methods new
-create_data_matrices <- function(X, outcome = NULL, treatment = NULL, sample.weights = FALSE) {
+create_data_matrices <- function(X, outcome = NULL, treatment = NULL, sample.weights = NULL) {
   default.data <- matrix(nrow = 0, ncol = 0)
   sparse.data <- new("dgCMatrix", Dim = c(0L, 0L))
   out <- list()
@@ -119,7 +119,7 @@ create_data_matrices <- function(X, outcome = NULL, treatment = NULL, sample.wei
     out[["treatment.index"]] <- (offset + 1):(offset + ncol(treatment))
     offset <- offset + ncol(treatment)
   }
-  if (!identical(sample.weights, "FALSE")) {
+  if (!identical(sample.weights, "FALSE") || sample.weights==TRUE) {
     out[["sample.weight.index"]] <- offset + 1
     if (is.null(sample.weights)) {
       out[["use.sample.weights"]] <- FALSE

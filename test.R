@@ -484,29 +484,29 @@ Y<-scale(Y)
 testid<-c(1:10)
 
 
-# 
+#
 # i<-0
 # witnesslist<-list()
 # Ylist<-list()
 # for (n in 8000){
 #   i<-i+1
 #   train_idx = sample(1:nrow(X)-1, n, replace=FALSE)
-# 
+#
 #   ## Focus on training data
 #   Ytrain=as.matrix(Y[train_idx,, drop=F])
 #   Wtrain<-as.matrix(W[train_idx,,drop=F])
 #   #as.numeric(W[train_idx])
 #   Xtrain=as.matrix(X[train_idx,])
-# 
+#
 #   fit <- drf(X=Xtrain, Y=Ytrain[,1,drop=F], W=Wtrain, num.trees = 4000, ci.group.size = 100)
-# 
-# 
+#
+#
 #   witnesslist[[i]]<- predict_witness(fit, alpha = 0.05, newdata = x, newtreatment = matrix(1))
 #   Ylist[[i]] <- Ytrain[,1,drop=F]
 # }
-# 
+#
 # for (i in 1:length(witnesslist)){
-# 
+#
 #   witness <- witnesslist[[i]]
 #   data <- tibble(
 #     Y     = Ylist[[i]],
@@ -514,8 +514,8 @@ testid<-c(1:10)
 #     lower = witness[2, ],
 #     upper = witness[3, ]
 #   )
-# 
-# 
+#
+#
 #   p <- data %>%
 #     ggplot(aes(x = rowSums(Y), y = w)) +
 #     geom_line(size = 1.5) +  # Thicker main line
@@ -547,19 +547,21 @@ fit <- drf(X=Xtrain, Y=Ytrain, W=Wtrain, num.trees = 4000, ci.group.size = 100)
 
 ###Change testpoint here: We use 1 and 10
 x<-as.matrix(pension[testid[10], c("age", "inc", "fsize", "educ", "marr", "twoearn", "hown", "db", "pira")])
+#x<-as.matrix(pension[testid, c("age", "inc", "fsize", "educ", "marr", "twoearn", "hown", "db", "pira")])
+
+#wx0<- predict(fit, newdata=x, newtreatment=0, bootstrap=F)$weights
+#wx1<- predict(fit, newdata=x, newtreatment=1, bootstrap=F)$weights
+#wx<-wx1 - wx0
+
+wx<-predict(fit, newdata=x, newtreatment=NULL, bootstrap=F)$weights
 
 
-wx0<- predict(fit, newdata=x, newtreatment=0, bootstrap=F)$weights
-wx1<- predict(fit, newdata=x, newtreatment=1, bootstrap=F)$weights
+#wxSb0<- predict(fit, newdata=x, newtreatment=0, bootstrap=T)$weights
+#wxSb1<- predict(fit, newdata=x, newtreatment=1, bootstrap=T)$weights
+#wxSb<-lapply(1:length(wxSb0), function(j) wxSb1[[j]] - wxSb0[[j]]  )
 
-### Request 1: Can we make a new option for newtreatmnet that directly gives us wx?
-### Request 2: Can we somehow output the witness function?
-wx<-wx1 - wx0
+wxSb<-predict(fit, newdata=x, newtreatment=NULL, bootstrap=T)$weights
 
-wxSb0<- predict(fit, newdata=x, newtreatment=0, bootstrap=T)$weights
-wxSb1<- predict(fit, newdata=x, newtreatment=1, bootstrap=T)$weights
-
-wxSb<-lapply(1:length(wxSb0), function(j) wxSb1[[j]] - wxSb0[[j]]  )
 
 
 bandwidth_Y <- fit$bandwidth

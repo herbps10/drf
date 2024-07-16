@@ -13,17 +13,24 @@
 #' @examples
 compute_causaldrf_vimp <- function(X, Y, W, X_test = NULL, num.trees = 500, silent = FALSE){
 
+
   X<-as.matrix(X)
   Y<-as.matrix(Y)
   W<-as.matrix(W)
+
+  if (is.null(X_test)){
+
+    X_test<-X
+
+  }
 
   # fit initial DRF
   bandwidth_Y <- drf:::medianHeuristic(Y)
   k_Y <- rbfdot(sigma = bandwidth_Y)
   K <- matrix(kernelMatrix(k_Y, Y, Y), ncol = nrow(Y))
   DRF <- drf(X, Y, W, num.trees = num.trees)
-  wall <- predict(DRF, X_test)$weights
-  wall <- matrix(wall, ncol = ncol(wall))
+  wall <- predict(DRF, newdata=X_test[1,,drop=F], newtreatment=NULL)$weights
+  #wall <- matrix(wall, ncol = ncol(wall))
 
   # compute normalization constant
   wbar <- colMeans(wall)

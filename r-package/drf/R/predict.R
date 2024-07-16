@@ -179,11 +179,11 @@ predict.drf <- function(object,
 
       if (is.null(newtreatment)){
         w0 <- get_causal_bootstrap_sample_weights(forest = object,
-                                                 newtreatment = 0,
+                                                 newtreatment = rep(0,nrow(newdata.mat)),
                                                  newdata = newdata.mat,
                                                  num.threads = num.threads)
         w1 <- get_causal_bootstrap_sample_weights(forest = object,
-                                                 newtreatment = 1,
+                                                 newtreatment = rep(1,nrow(newdata.mat)),
                                                  newdata = newdata.mat,
                                                  num.threads = num.threads)
 
@@ -202,11 +202,11 @@ predict.drf <- function(object,
 
       if (is.null(newtreatment)){
         w0 <- get_causal_sample_weights(forest = object,
-                                                  newtreatment = 0,
+                                                  newtreatment = rep(0,nrow(newdata.mat)),
                                                   newdata = newdata.mat,
                                                   num.threads = num.threads)
         w1 <- get_causal_sample_weights(forest = object,
-                                                  newtreatment = 1,
+                                                  newtreatment = rep(1,nrow(newdata.mat)),
                                                   newdata = newdata.mat,
                                                   num.threads = num.threads)
 
