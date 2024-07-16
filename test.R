@@ -15,6 +15,8 @@ library(Hmisc)
 library(gridExtra)
 library(designmatch)
 
+source("compute_causaldrf_vimp.R")
+
 set.seed(10)
 
 
@@ -631,7 +633,7 @@ p[[j]] <- data %>%
 grid.arrange(p[[1]], p[[2]], p[[3]], ncol = 3)
 
 
-
+vimp<-compute_causaldrf_vimp(X, Y, W, X_test = NULL, num.trees = 300, silent = FALSE)
 
 }
 

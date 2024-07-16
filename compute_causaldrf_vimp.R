@@ -29,7 +29,7 @@ compute_causaldrf_vimp <- function(X, Y, W, X_test = NULL, num.trees = 500, sile
   k_Y <- rbfdot(sigma = bandwidth_Y)
   K <- matrix(kernelMatrix(k_Y, Y, Y), ncol = nrow(Y))
   DRF <- drf(X, Y, W, num.trees = num.trees)
-  wall <- predict(DRF, newdata=X_test[1,,drop=F], newtreatment=NULL)$weights
+  wall <- predict(DRF, newdata=X_test, newtreatment=NULL)$weights
   #wall <- matrix(wall, ncol = ncol(wall))
 
   # compute normalization constant
@@ -52,7 +52,7 @@ compute_causaldrf_vimp <- function(X, Y, W, X_test = NULL, num.trees = 500, sile
   })
 
   # compute retraining bias
-  DRF0 <- drf(X = X, Y = Y, num.trees = num.trees)
+  DRF0 <- drf(X = X, Y = Y, W=W, num.trees = num.trees)
   w0 = predict(DRF0, X_test)$weights
   w0 <- matrix(w0, ncol = ncol(w0))
   vimp0 <- sum(diag((w0 - wall) %*% K %*% t(w0 - wall)))/I0
