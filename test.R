@@ -481,57 +481,59 @@ Y<-scale(Y)
 ## the wealth measures into one variable beforehand, we use the ability of Causal-DRF
 ## to estimate the CKTE of the three wealth measures in total.
 
-x<-as.matrix(pension[nrow(X), c("age", "inc", "fsize", "educ", "marr", "twoearn", "hown", "db", "pira")])
-
-i<-0
-witnesslist<-list()
-Ylist<-list()
-for (n in 8000){
-  i<-i+1
-  train_idx = sample(1:nrow(X)-1, n, replace=FALSE)
-
-  ## Focus on training data
-  Ytrain=as.matrix(Y[train_idx,, drop=F])
-  Wtrain<-as.matrix(W[train_idx,,drop=F])
-  #as.numeric(W[train_idx])
-  Xtrain=as.matrix(X[train_idx,])
-
-  fit <- drf(X=Xtrain, Y=Ytrain[,1,drop=F], W=Wtrain, num.trees = 4000, ci.group.size = 100)
+testid<-c(1:10)
 
 
-  witnesslist[[i]]<- predict_witness(fit, alpha = 0.05, newdata = x, newtreatment = matrix(1))
-  Ylist[[i]] <- Ytrain[,1,drop=F]
-}
+# 
+# i<-0
+# witnesslist<-list()
+# Ylist<-list()
+# for (n in 8000){
+#   i<-i+1
+#   train_idx = sample(1:nrow(X)-1, n, replace=FALSE)
+# 
+#   ## Focus on training data
+#   Ytrain=as.matrix(Y[train_idx,, drop=F])
+#   Wtrain<-as.matrix(W[train_idx,,drop=F])
+#   #as.numeric(W[train_idx])
+#   Xtrain=as.matrix(X[train_idx,])
+# 
+#   fit <- drf(X=Xtrain, Y=Ytrain[,1,drop=F], W=Wtrain, num.trees = 4000, ci.group.size = 100)
+# 
+# 
+#   witnesslist[[i]]<- predict_witness(fit, alpha = 0.05, newdata = x, newtreatment = matrix(1))
+#   Ylist[[i]] <- Ytrain[,1,drop=F]
+# }
+# 
+# for (i in 1:length(witnesslist)){
+# 
+#   witness <- witnesslist[[i]]
+#   data <- tibble(
+#     Y     = Ylist[[i]],
+#     w     = witness[1, ],
+#     lower = witness[2, ],
+#     upper = witness[3, ]
+#   )
+# 
+# 
+#   p <- data %>%
+#     ggplot(aes(x = rowSums(Y), y = w)) +
+#     geom_line(size = 1.5) +  # Thicker main line
+#     geom_line(aes(y = lower), lty = 2, size = 1.5) +  # Thicker dashed lines
+#     geom_line(aes(y = upper), lty = 2, size = 1.5) +  # Thicker dashed lines
+#     geom_hline(yintercept = 0, size = 1.5)+
+#     scale_x_continuous(limits =  range(Ylist[[length(witnesslist)]])) +
+#     scale_y_continuous(limits = c(-0.4,0.4)) +
+#     labs(y = NULL) +  # Remove y-axis label+
+#     theme(
+#       axis.title = element_text(size = 14),  # Increase axis title size
+#       axis.text = element_text(size = 12)    # Increase axis text size
+#     )
+#   print(p)
+# }
 
-for (i in 1:length(witnesslist)){
 
-  witness <- witnesslist[[i]]
-  data <- tibble(
-    Y     = Ylist[[i]],
-    w     = witness[1, ],
-    lower = witness[2, ],
-    upper = witness[3, ]
-  )
-
-
-  p <- data %>%
-    ggplot(aes(x = rowSums(Y), y = w)) +
-    geom_line(size = 1.5) +  # Thicker main line
-    geom_line(aes(y = lower), lty = 2, size = 1.5) +  # Thicker dashed lines
-    geom_line(aes(y = upper), lty = 2, size = 1.5) +  # Thicker dashed lines
-    geom_hline(yintercept = 0, size = 1.5)+
-    scale_x_continuous(limits =  range(Ylist[[length(witnesslist)]])) +
-    scale_y_continuous(limits = c(-0.4,0.4)) +
-    labs(y = NULL) +  # Remove y-axis label+
-    theme(
-      axis.title = element_text(size = 14),  # Increase axis title size
-      axis.text = element_text(size = 12)    # Increase axis text size
-    )
-  print(p)
-}
-
-
-train_idx = 1:(nrow(X)-1) #sample(2:nrow(X), 8000, replace=FALSE)
+train_idx =setdiff(1:nrow(X),testid)#sample(2:nrow(X), 8000, replace=FALSE)
 
 
 ## Focus on training data
@@ -542,6 +544,9 @@ Xtrain=as.matrix(X[train_idx,])
 
 
 fit <- drf(X=Xtrain, Y=Ytrain, W=Wtrain, num.trees = 4000, ci.group.size = 100)
+
+###Change testpoint here: We use 1 and 10
+x<-as.matrix(pension[testid[10], c("age", "inc", "fsize", "educ", "marr", "twoearn", "hown", "db", "pira")])
 
 
 wx0<- predict(fit, newdata=x, newtreatment=0, bootstrap=F)$weights
@@ -568,52 +573,62 @@ q<-quantile(H0list, 1-0.05)
 
 teststat<-as.numeric(wx%*%Ky%*%t(wx))
 
-print(teststat >= q) ##We reject a t the 5 % level!
+print(ifelse(teststat >= q, "We reject at 5%", "We do not reject at 5%" )) ##We reject a t the 5 % level!
 
-
+p<-list()
 
 ##Only plot first dimension
-bandwidth_Y1 <- drf:::medianHeuristic(Ytrain[,1])
-k_Y1 <- rbfdot(sigma = 1/(2*bandwidth_Y1^2) )
+for (j in 1:3){
 
 
-Ky1 <- kernlab::kernelMatrix(k_Y, Ytrain[,1], y =  Ytrain[,1])
-H0list1<-do.call(c, lapply(wxSb, function(w) as.numeric((w-wx)%*%Ky1%*%t(w-wx)) ))
-q1<-quantile(H0list1, 1-0.05)
+bandwidth_Yj <- drf:::medianHeuristic(Ytrain[,j])
+k_Yj <- rbfdot(sigma = 1/(2*bandwidth_Yj^2) )
+
+
+Kyj <- kernlab::kernelMatrix(k_Y, Ytrain[,j], y =  Ytrain[,j])
+H0listj<-do.call(c, lapply(wxSb, function(w) as.numeric((w-wx)%*%Kyj%*%t(w-wx)) ))
+qj<-quantile(H0listj, 1-0.05)
 
 
 ##Make this into an actual function!!! and then a grid from min to max of Y.
 fvals<- function(y){
 
-  Ky1f <- kernlab::kernelMatrix(k_Y, Ytrain[,1], y =  y)
+  Kyjf <- kernlab::kernelMatrix(k_Yj, Ytrain[,j], y =  y)
 
-  return(as.numeric(unlist(wx%*%Ky1f)))
+  return(as.numeric(unlist(wx%*%Kyjf)))
 }
 
-yseq<-seq(min(Ytrain[,1]), max(Ytrain[,1]), by=0.01    )
+yseq<-seq(min(Ytrain[,j]), max(Ytrain[,j]), by=0.005    )
 
 data <- tibble(
   Y     = yseq,
   w     = fvals(yseq),
-  lower = fvals(yseq)-sqrt(q1),
-  upper = fvals(yseq)+sqrt(q1)
+  lower = fvals(yseq)-sqrt(qj),
+  upper = fvals(yseq)+sqrt(qj)
 )
 
 
-p <- data %>%
+p[[j]] <- data %>%
   ggplot(aes(x = Y, y = w)) +
   geom_line(size = 1.5) +  # Thicker main line
   geom_line(aes(y = lower), lty = 2, size = 1.5) +  # Thicker dashed lines
   geom_line(aes(y = upper), lty = 2, size = 1.5) +  # Thicker dashed lines
   geom_hline(yintercept = 0, size = 1.5)+
-  scale_x_continuous(limits =  range(yseq)) +
-  scale_y_continuous(limits = c(-1.4,1.4)) +
+  scale_x_continuous(limits = c(-10,10) ) + # range(yseq)
+  scale_y_continuous(limits = c(-0.4,0.4)) +
   labs(y = NULL) +  # Remove y-axis label+
   theme(
     axis.title = element_text(size = 14),  # Increase axis title size
     axis.text = element_text(size = 12)    # Increase axis text size
   )
-print(p)
+
+}
+
+
+
+grid.arrange(p[[1]], p[[2]], p[[3]], ncol = 3)
+
+
 
 
 }

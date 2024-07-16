@@ -169,22 +169,57 @@ predict.drf <- function(object,
 
 
   # get the weights which are used in the second step
-  if(fit$causal == FALSE) {
+  if(object$causal == FALSE) {
     w <- get_sample_weights(forest = object,
                             newdata = newdata.mat,
                             num.threads = num.threads)
   }
   else {
     if(bootstrap == TRUE) {
+
+      if (is.null(newtreatment)){
+        w0 <- get_causal_bootstrap_sample_weights(forest = object,
+                                                 newtreatment = 0,
+                                                 newdata = newdata.mat,
+                                                 num.threads = num.threads)
+        w1 <- get_causal_bootstrap_sample_weights(forest = object,
+                                                 newtreatment = 1,
+                                                 newdata = newdata.mat,
+                                                 num.threads = num.threads)
+
+        w<-lapply(1:length(w1), function(j)  w1[[j]]-w0[[j]])
+
+      }else{
+
       w <- get_causal_bootstrap_sample_weights(forest = object,
                                      newtreatment = newtreatment,
                                      newdata = newdata.mat,
                                      num.threads = num.threads)
+
+      }
     } else {
+
+
+      if (is.null(newtreatment)){
+        w0 <- get_causal_sample_weights(forest = object,
+                                                  newtreatment = 0,
+                                                  newdata = newdata.mat,
+                                                  num.threads = num.threads)
+        w1 <- get_causal_sample_weights(forest = object,
+                                                  newtreatment = 1,
+                                                  newdata = newdata.mat,
+                                                  num.threads = num.threads)
+
+        w<-w1-w0
+
+      }else{
+
       w <- get_causal_sample_weights(forest = object,
                                      newtreatment = newtreatment,
                                      newdata = newdata.mat,
                                      num.threads = num.threads)
+
+      }
     }
   }
 
