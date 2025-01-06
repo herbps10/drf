@@ -378,7 +378,7 @@ Eigen::MatrixXd compute_witness(
   Eigen::VectorXd norms = Eigen::Map<Eigen::VectorXd>(group_witness_functions.data(), group_witness_functions.cols() * group_witness_functions.rows());
 
   std::sort(norms.data(), norms.data() + norms.size());
-  double quantile = norms.coeff(floor((1 - alpha) * norms.size()));
+  double quantile = norms(floor((1 - alpha) * norms.size()));
 
   all_witness_function.row(1) = all_witness_function.row(0);
   all_witness_function.row(2) = all_witness_function.row(0);

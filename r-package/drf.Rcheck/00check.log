@@ -1,0 +1,31 @@
+* using log directory 'C:/Users/Jeff/OneDrive/Dokumente/Studium/PhD/Projects with Marc/Github/drf/r-package/drf.Rcheck'
+* using R version 4.3.1 (2023-06-16 ucrt)
+* using platform: x86_64-w64-mingw32 (64-bit)
+* R was compiled by
+    gcc.exe (GCC) 12.2.0
+    GNU Fortran (GCC) 12.2.0
+* running under: Windows 11 x64 (build 22631)
+* using session charset: UTF-8
+* using options '--no-manual --as-cran'
+* checking for file 'drf/DESCRIPTION' ... OK
+* this is package 'drf' version '1.1.0'
+* checking package namespace information ... OK
+* checking package dependencies ... OK
+* checking if this is a source package ... WARNING
+Subdirectory 'src' contains:
+  RcppExports-37886e6e.o.tmp
+These are unlikely file names for src files.
+* checking if there is a namespace ... OK
+* checking for executable files ... OK
+* checking for hidden files and directories ... NOTE
+Found the following hidden files and directories:
+  .Rbuildignore-e
+These were most likely included in error. See section 'Package
+structure' in the 'Writing R Extensions' manual.
+* checking for portable file names ... OK
+* checking serialization versions ... OK
+* checking whether package 'drf' can be installed ... ERROR
+Installation failed.
+See 'C:/Users/Jeff/OneDrive/Dokumente/Studium/PhD/Projects with Marc/Github/drf/r-package/drf.Rcheck/00install.out' for details.
+* DONE
+Status: 1 ERROR, 1 WARNING, 1 NOTE
